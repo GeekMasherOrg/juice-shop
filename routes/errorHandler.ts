@@ -22,7 +22,17 @@ export function errorHandler () {
       return
     }
 
-    const template = await fs.readFile('views/errorPage.pug', { encoding: 'utf-8' })
+    const templatePath = 'views/errorPage.pug'
+    const template = await fs.readFile(templatePath, { encoding: 'utf-8' })
+    const crypto = await import('node:crypto')
+    const expectedHash = config.get<string>('templateHash') // Securely stored expected hash
+    const actualHash = crypto.createHash('sha256').update(template).digest('hex')
+
+    if (actualHash !== expectedHash) {
+      res.status(500).send('Template integrity check failed.')
+      return
+    }
+
     const title = `${config.get<string>('application.name')} (Express ${utils.version('express')})`
     const fn = pug.compile(template)
     res.status(500).send(fn({ title, error }))
